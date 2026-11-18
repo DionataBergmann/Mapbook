@@ -10,7 +10,9 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack />
+        <Stack>
+          <Stack.Screen name="index" options={{ title: 'Mapbook' }} />
+        </Stack>
       </ThemeProvider>
     </QueryClientProvider>
   );
