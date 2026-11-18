@@ -17,5 +17,6 @@ apps/mobile/android/
 
 .vscode/
 .claude/
+.cursor/
 .DS_Store
 *.log
