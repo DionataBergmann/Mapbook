@@ -1,9 +1,15 @@
-import type { GalleryPhoto } from './gallery-photo';
+import type { GalleryPhoto, GalleryPhotoKind } from './gallery-photo';
+
+export type KindCount = {
+  photos: number;
+  withLocation: number;
+};
 
 export type ReadMeasurement = {
   photos: number;
   withDate: number;
   withLocation: number;
+  byKind: Record<GalleryPhotoKind, KindCount>;
   firstPageMs: number;
   elapsedMs: number;
 };
@@ -14,11 +20,32 @@ export type ReadVerdict = 'ok' | 'avaliar' | 'nativo';
 const OK_MS_PER_THOUSAND = 5_000;
 const NATIVE_MS_PER_THOUSAND = 15_000;
 
+const emptyKind = (): KindCount => ({ photos: 0, withLocation: 0 });
+
 export function countPhotos(photos: GalleryPhoto[]) {
+  const byKind: Record<GalleryPhotoKind, KindCount> = {
+    photo: emptyKind(),
+    screenshot: emptyKind(),
+  };
+
+  let withDate = 0;
+  let withLocation = 0;
+
+  for (const photo of photos) {
+    const bucket = byKind[photo.kind];
+    bucket.photos += 1;
+    if (photo.takenAt !== null) withDate += 1;
+    if (photo.latitude !== null) {
+      withLocation += 1;
+      bucket.withLocation += 1;
+    }
+  }
+
   return {
     photos: photos.length,
-    withDate: photos.filter((photo) => photo.takenAt !== null).length,
-    withLocation: photos.filter((photo) => photo.latitude !== null).length,
+    withDate,
+    withLocation,
+    byKind,
   };
 }
 

@@ -1,16 +1,32 @@
-import { toGalleryPhoto } from './gallery-photo';
+import { photoKind, toGalleryPhoto } from './gallery-photo';
 
 const takenAt = Date.UTC(2014, 0, 12, 15, 30);
 
 describe('toGalleryPhoto', () => {
-  test('converte id, data e localização', () => {
+  test('converte id, data, localização e tipo', () => {
     expect(
       toGalleryPhoto({
         id: 'asset-1',
         creationTime: takenAt,
         location: { latitude: -30.0346, longitude: -51.2177 },
       }),
-    ).toEqual({ assetId: 'asset-1', takenAt, latitude: -30.0346, longitude: -51.2177 });
+    ).toEqual({
+      assetId: 'asset-1',
+      takenAt,
+      latitude: -30.0346,
+      longitude: -51.2177,
+      kind: 'photo',
+    });
+  });
+
+  test('marca print de tela pelo mediaSubtype', () => {
+    expect(
+      toGalleryPhoto({
+        id: 'asset-1',
+        creationTime: takenAt,
+        mediaSubtypes: ['screenshot'],
+      }),
+    ).toMatchObject({ kind: 'screenshot' });
   });
 
   test('foto sem localização fica com latitude e longitude nulas', () => {
@@ -53,5 +69,15 @@ describe('toGalleryPhoto', () => {
 
   test.each([0, -1, Number.NaN])('data %p vira nula', (creationTime) => {
     expect(toGalleryPhoto({ id: 'asset-1', creationTime }).takenAt).toBeNull();
+  });
+});
+
+describe('photoKind', () => {
+  test('sem subtype é foto', () => {
+    expect(photoKind(undefined)).toBe('photo');
+  });
+
+  test('screenshot ganha prioridade sobre outros subtypes', () => {
+    expect(photoKind(['hdr', 'screenshot'])).toBe('screenshot');
   });
 });

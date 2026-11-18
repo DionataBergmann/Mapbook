@@ -2,6 +2,7 @@ import { requestPermissionsAsync } from 'expo-media-library/legacy';
 import { Redirect, Stack } from 'expo-router';
 import { useState } from 'react';
 import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { GalleryPhoto } from '@/gallery/gallery-photo';
 import { readGallery } from '@/gallery/read-gallery';
@@ -9,6 +10,7 @@ import {
   countPhotos,
   msPerThousand,
   readVerdict,
+  type KindCount,
   type ReadMeasurement,
 } from '@/gallery/read-measurement';
 
@@ -74,26 +76,39 @@ function GalleryReadBenchmark() {
   const running = run.status === 'running';
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: 'Leitura da galeria' }} />
-      <View style={styles.actions}>
-        <Button
-          title="Ler 2.000 fotos"
-          disabled={running}
-          onPress={() => measure(FIRST_MINUTE_PHOTOS)}
-        />
-        <Button title="Ler a galeria inteira" disabled={running} onPress={() => measure()} />
-      </View>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <Stack.Screen
+        options={{
+          title: 'Leitura da galeria',
+          headerTransparent: false,
+        }}
+      />
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.actions}>
+          <Button
+            title="Ler 2.000 fotos"
+            disabled={running}
+            onPress={() => measure(FIRST_MINUTE_PHOTOS)}
+          />
+          <Button title="Ler a galeria inteira" disabled={running} onPress={() => measure()} />
+        </View>
 
-      {run.status === 'denied' && <Text>Sem permissão para ler a galeria.</Text>}
-      {run.status === 'running' && (
-        <Text>
-          Lendo {run.read} de {run.totalCount}…
-        </Text>
-      )}
-      {run.status === 'done' && <MeasurementReport {...run} />}
-    </ScrollView>
+        {run.status === 'denied' && <Text>Sem permissão para ler a galeria.</Text>}
+        {run.status === 'running' && (
+          <Text>
+            Lendo {run.read} de {run.totalCount}…
+          </Text>
+        )}
+        {run.status === 'done' && <MeasurementReport {...run} />}
+      </ScrollView>
+    </SafeAreaView>
   );
+}
+
+function kindLabel(count: KindCount) {
+  if (count.photos === 0) return '0';
+  const share = (count.withLocation / count.photos) * 100;
+  return `${count.photos} · ${count.withLocation} com local (${share.toFixed(1)}%)`;
 }
 
 function MeasurementReport({
@@ -113,6 +128,8 @@ function MeasurementReport({
     ['Fotos lidas', String(measurement.photos)],
     ['Com data', String(measurement.withDate)],
     ['Com local', `${measurement.withLocation} (${withLocationShare.toFixed(1)}%)`],
+    ['Fotos (não print)', kindLabel(measurement.byKind.photo)],
+    ['Prints de tela', kindLabel(measurement.byKind.screenshot)],
     ['Primeira página', `${(measurement.firstPageMs / 1_000).toFixed(2)} s`],
     ['Tempo total', `${(measurement.elapsedMs / 1_000).toFixed(2)} s`],
     ['Por mil fotos', perThousand === null ? '—' : `${(perThousand / 1_000).toFixed(2)} s`],
@@ -124,7 +141,9 @@ function MeasurementReport({
       {rows.map(([label, value]) => (
         <View key={label} style={styles.row}>
           <Text style={styles.label}>{label}</Text>
-          <Text selectable>{value}</Text>
+          <Text style={styles.value} selectable>
+            {value}
+          </Text>
         </View>
       ))}
     </View>
@@ -132,6 +151,9 @@ function MeasurementReport({
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+  },
   container: {
     padding: 16,
     gap: 16,
@@ -145,8 +167,14 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   label: {
     fontWeight: '600',
+    flexShrink: 0,
+  },
+  value: {
+    flex: 1,
+    textAlign: 'right',
   },
 });

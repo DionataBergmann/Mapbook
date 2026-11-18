@@ -1,13 +1,16 @@
-import type { Asset } from 'expo-media-library/legacy';
+import type { Asset, MediaSubtype } from 'expo-media-library/legacy';
+
+export type GalleryPhotoKind = 'screenshot' | 'photo';
 
 export type GalleryPhoto = {
   assetId: string;
   takenAt: number | null;
   latitude: number | null;
   longitude: number | null;
+  kind: GalleryPhotoKind;
 };
 
-type AssetFields = Pick<Asset, 'id' | 'creationTime' | 'location'>;
+type AssetFields = Pick<Asset, 'id' | 'creationTime' | 'location' | 'mediaSubtypes'>;
 
 export function toGalleryPhoto(asset: AssetFields): GalleryPhoto {
   const takenAt =
@@ -19,7 +22,12 @@ export function toGalleryPhoto(asset: AssetFields): GalleryPhoto {
     takenAt,
     latitude: location?.latitude ?? null,
     longitude: location?.longitude ?? null,
+    kind: photoKind(asset.mediaSubtypes),
   };
+}
+
+export function photoKind(mediaSubtypes: MediaSubtype[] | undefined): GalleryPhotoKind {
+  return mediaSubtypes?.includes('screenshot') ? 'screenshot' : 'photo';
 }
 
 function isUsableLocation(location: Asset['location']): location is NonNullable<Asset['location']> {

@@ -1,7 +1,17 @@
 import { countPhotos, msPerThousand, readVerdict, type ReadMeasurement } from './read-measurement';
 
 function measurement(photos: number, elapsedMs: number): ReadMeasurement {
-  return { photos, withDate: photos, withLocation: photos, firstPageMs: 0, elapsedMs };
+  return {
+    photos,
+    withDate: photos,
+    withLocation: photos,
+    byKind: {
+      photo: { photos, withLocation: photos },
+      screenshot: { photos: 0, withLocation: 0 },
+    },
+    firstPageMs: 0,
+    elapsedMs,
+  };
 }
 
 describe('msPerThousand', () => {
@@ -30,13 +40,22 @@ describe('readVerdict', () => {
 });
 
 describe('countPhotos', () => {
-  test('conta fotos com data e com localização', () => {
+  test('conta fotos com data, localização e tipo', () => {
     expect(
       countPhotos([
-        { assetId: 'a', takenAt: 1, latitude: 1, longitude: 1 },
-        { assetId: 'b', takenAt: 1, latitude: null, longitude: null },
-        { assetId: 'c', takenAt: null, latitude: null, longitude: null },
+        { assetId: 'a', takenAt: 1, latitude: 1, longitude: 1, kind: 'photo' },
+        { assetId: 'b', takenAt: 1, latitude: null, longitude: null, kind: 'photo' },
+        { assetId: 'c', takenAt: null, latitude: null, longitude: null, kind: 'screenshot' },
+        { assetId: 'd', takenAt: 1, latitude: 2, longitude: 2, kind: 'screenshot' },
       ]),
-    ).toEqual({ photos: 3, withDate: 2, withLocation: 1 });
+    ).toEqual({
+      photos: 4,
+      withDate: 3,
+      withLocation: 2,
+      byKind: {
+        photo: { photos: 2, withLocation: 1 },
+        screenshot: { photos: 2, withLocation: 1 },
+      },
+    });
   });
 });
