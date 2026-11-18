@@ -1,23 +1,46 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { GalleryPhoto } from '@/gallery/gallery-photo';
 import { memorySql } from '@/photo-index/memory-sql';
 import { createPhotoIndex } from '@/photo-index/photo-index';
 import MapScreen from '@/app/index';
 
+const mockImageCache = new Map<string, { uri: string }>();
+
+jest.mock('expo-image', () => {
+  const { View } = require('react-native');
+  return {
+    Image: (props: object) => <View {...props} />,
+    useImage: (source: string | null) => {
+      if (!source) return null;
+      const cached = mockImageCache.get(source);
+      if (cached) return cached;
+      const image = { uri: source };
+      mockImageCache.set(source, image);
+      return image;
+    },
+  };
+});
+
 jest.mock('expo-maps', () => {
   const { Text, View } = require('react-native');
   return {
     AppleMaps: {
       View: ({
-        markers,
+        annotations,
+        onAnnotationClick,
       }: {
-        markers?: { id?: string; coordinates?: { latitude?: number; longitude?: number } }[];
+        annotations?: {
+          id?: string;
+          coordinates?: { latitude?: number; longitude?: number };
+          text?: string;
+        }[];
+        onAnnotationClick?: (annotation: { id?: string }) => void;
       }) => (
         <View>
-          {markers?.map((marker) => (
-            <Text key={marker.id}>
-              {`${marker.id}:${marker.coordinates?.latitude},${marker.coordinates?.longitude}`}
+          {annotations?.map((annotation) => (
+            <Text key={annotation.id} onPress={() => onAnnotationClick?.(annotation)}>
+              {`${annotation.id}:${annotation.coordinates?.latitude},${annotation.coordinates?.longitude}${annotation.text ? `:${annotation.text}` : ''}`}
             </Text>
           ))}
         </View>
@@ -41,6 +64,7 @@ jest.mock('@/gallery/read-gallery', () => ({
 
 const media = jest.requireMock('expo-media-library/legacy') as {
   requestPermissionsAsync: jest.Mock;
+  getAssetInfoAsync: jest.Mock;
 };
 
 const indexModule = jest.requireMock('@/photo-index/open-photo-index') as {
@@ -64,6 +88,10 @@ describe('<MapScreen />', () => {
     await index.migrate();
     indexModule.openPhotoIndex.mockResolvedValue(index);
     media.requestPermissionsAsync.mockResolvedValue({ granted: true });
+    media.getAssetInfoAsync.mockImplementation(async (assetId: string) => ({
+      localUri: `file:///photos/${assetId}.jpg`,
+      uri: `ph://${assetId}`,
+    }));
     library([]);
   });
 
@@ -99,6 +127,36 @@ describe('<MapScreen />', () => {
     expect(screen.queryByText(/sem-gps/)).toBeNull();
     expect(screen.queryByText(/print:/)).toBeNull();
     expect(screen.getByText('Medir leitura da galeria')).toBeOnTheScreen();
+  });
+
+  test('abre a galeria do ponto para passar entre as fotos', async () => {
+    const latitude = -30.03464789;
+    library([
+      {
+        assetId: 'antiga',
+        takenAt: 1,
+        latitude,
+        longitude: -51.2,
+        kind: 'photo',
+      },
+      {
+        assetId: 'nova',
+        takenAt: 2,
+        latitude: latitude + 20 / 111_320,
+        longitude: -51.2,
+        kind: 'photo',
+      },
+    ]);
+
+    await render(<MapScreen />);
+
+    const newerLatitude = latitude + 20 / 111_320;
+    fireEvent.press(await screen.findByText(`nova:${newerLatitude},-51.2:2`));
+
+    expect(await screen.findByLabelText('nova')).toBeOnTheScreen();
+    expect(screen.getByLabelText('antiga')).toBeOnTheScreen();
+    expect(screen.getByText('1 de 2')).toBeOnTheScreen();
+    expect(screen.queryByText(/antiga:/)).toBeNull();
   });
 
   test('sem permissão e sem fotos avisa em vez de abrir o mapa', async () => {

@@ -51,7 +51,14 @@ describe('loadMapPhotos', () => {
 
     expect(result).toMatchObject({
       status: 'ready',
-      markers: [{ assetId: 'gps', latitude: -30.03464789, longitude: -51.21765812 }],
+      markers: [
+        {
+          assetId: 'gps',
+          latitude: -30.03464789,
+          longitude: -51.21765812,
+          takenAt: 1_700_000_000_000,
+        },
+      ],
       camera: { latitude: -30.03464789, longitude: -51.21765812 },
     });
   });
@@ -69,7 +76,7 @@ describe('loadMapPhotos', () => {
 
     expect(calls).toEqual([]);
     expect(readyMarkers(result)).toEqual([
-      { assetId: 'gravada', latitude: 51.0447, longitude: -114.0719 },
+      { assetId: 'gravada', latitude: 51.0447, longitude: -114.0719, takenAt: 1_700_000_000_000 },
     ]);
   });
 
@@ -98,7 +105,9 @@ describe('loadMapPhotos', () => {
       read,
     });
 
-    expect(readyMarkers(result)).toEqual([{ assetId: 'gravada', latitude: 10, longitude: 20 }]);
+    expect(readyMarkers(result)).toEqual([
+      { assetId: 'gravada', latitude: 10, longitude: 20, takenAt: 1_700_000_000_000 },
+    ]);
   });
 
   test('galeria sem GPS fica vazia', async () => {
