@@ -33,7 +33,7 @@ git switch -c feat/api-auth-jwt
 
 ## Commit
 
-[Conventional Commits](https://www.conventionalcommits.org/). Tipo e escopo em inglês, descrição em português, no imperativo, minúscula, sem ponto final, até 72 caracteres.
+[Conventional Commits](https://www.conventionalcommits.org/). Tipo e escopo em inglês, descrição em português, no imperativo, começando em minúscula, sem ponto final, cabeçalho até 72 caracteres. Siglas mantêm a caixa (`JWT`, `SQLite`).
 
 ```
 <tipo>(<escopo>): <descrição>
@@ -77,15 +77,19 @@ Corpo da PR, em português:
 
 ```markdown
 ## Resumo
+
 <1 a 3 frases: o que a PR entrega e por quê>
 
 ## Mudanças
+
 - <mudança relevante para quem revisa>
 
 ## Como testar
+
 1. <passo reproduzível>
 
 ## Fora do escopo
+
 - <o que ficou para outra PR, se houver>
 ```
 

@@ -15,5 +15,7 @@ apps/mobile/android/
 .env.*
 !.env.example
 
+.vscode/
+.claude/
 .DS_Store
 *.log

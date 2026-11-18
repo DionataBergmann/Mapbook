@@ -1,0 +1,27 @@
+{
+  "name": "mapbook",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev:mobile": "pnpm --filter @mapbook/mobile start",
+    "dev:web": "pnpm --filter @mapbook/web dev",
+    "dev:api": "pnpm --filter @mapbook/api start:dev",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.4",
+    "@commitlint/config-conventional": "^21.2.4",
+    "husky": "^9.1.7",
+    "prettier": "^3.10.1"
+  }
+}
