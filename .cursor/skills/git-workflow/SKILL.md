@@ -58,6 +58,21 @@ Mudança incompatível: `feat(api)!: ...` e rodapé `BREAKING CHANGE: <o que que
 
 Commits pequenos dentro da branch, cada um compilando. O `commitlint` no hook `commit-msg` rejeita mensagem fora do padrão; corrigir a mensagem, nunca usar `--no-verify`.
 
+## Testes
+
+Toda PR que adiciona ou muda comportamento traz teste unitário dele. PR sem teste só para configuração, documentação ou estilo.
+
+| App          | Ferramenta                                        | Onde fica o teste                                                                                                           |
+| ------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `mobile`     | Jest (`jest-expo`) + React Native Testing Library | `*-test.ts(x)` ao lado do código; telas de `src/app/` testadas em `__tests__/`, porque todo arquivo em `src/app/` vira rota |
+| `web`        | Vitest + Testing Library                          | `*.test.ts(x)` ao lado do código                                                                                            |
+| `api`        | Vitest                                            | `*.spec.ts` ao lado do código; e2e em `test/`                                                                               |
+| `packages/*` | Vitest                                            | `*.test.ts` ao lado do código                                                                                               |
+
+Regra de negócio (agrupamento em lugares, visitas, cidades, trajeto) é função pura em `packages/domain` e tem teste para cada limite: 3 dias, 25 km, 3 fotos, 6 horas, 300 km.
+
+O hook `pre-push` roda `pnpm typecheck && pnpm test`.
+
 ## Pull request
 
 Antes de abrir:
