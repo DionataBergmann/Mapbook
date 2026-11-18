@@ -13,6 +13,13 @@ import {
   type KindCount,
   type ReadMeasurement,
 } from '@/gallery/read-measurement';
+import { openPhotoIndex } from '@/photo-index/open-photo-index';
+import {
+  syncPhotoIndex,
+  type PhotoRole,
+  type RoleCounts,
+  type SyncReport,
+} from '@/photo-index/photo-index';
 
 const FIRST_MINUTE_PHOTOS = 2_000;
 
@@ -33,8 +40,22 @@ type RunState =
       limit: number | null;
     };
 
+const ROLE_ROWS: [PhotoRole, string][] = [
+  ['map', 'No mapa'],
+  ['classify', 'Para classificar'],
+  ['screenshot', 'Prints de tela'],
+];
+
+type IndexState =
+  | { status: 'idle' }
+  | { status: 'denied' }
+  | { status: 'running' }
+  | { status: 'error'; message: string }
+  | ({ status: 'done'; counts: RoleCounts } & SyncReport);
+
 function GalleryReadBenchmark() {
   const [run, setRun] = useState<RunState>({ status: 'idle' });
+  const [indexRun, setIndexRun] = useState<IndexState>({ status: 'idle' });
 
   async function measure(limit?: number) {
     const permission = await requestPermissionsAsync(false, ['photo']);
@@ -73,7 +94,27 @@ function GalleryReadBenchmark() {
     setRun({ status: 'done', ...result });
   }
 
-  const running = run.status === 'running';
+  async function indexGallery() {
+    const permission = await requestPermissionsAsync(false, ['photo']);
+    if (!permission.granted) {
+      setIndexRun({ status: 'denied' });
+      return;
+    }
+
+    setIndexRun({ status: 'running' });
+    try {
+      const index = await openPhotoIndex();
+      const result = await syncPhotoIndex(index, (options) => readGallery(options));
+      setIndexRun({ status: 'done', ...result, counts: await index.counts() });
+    } catch (error) {
+      setIndexRun({
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Falhou ao indexar a galeria.',
+      });
+    }
+  }
+
+  const busy = run.status === 'running' || indexRun.status === 'running';
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -87,10 +128,11 @@ function GalleryReadBenchmark() {
         <View style={styles.actions}>
           <Button
             title="Ler 2.000 fotos"
-            disabled={running}
+            disabled={busy}
             onPress={() => measure(FIRST_MINUTE_PHOTOS)}
           />
-          <Button title="Ler a galeria inteira" disabled={running} onPress={() => measure()} />
+          <Button title="Ler a galeria inteira" disabled={busy} onPress={() => measure()} />
+          <Button title="Indexar galeria" disabled={busy} onPress={() => indexGallery()} />
         </View>
 
         {run.status === 'denied' && <Text>Sem permissão para ler a galeria.</Text>}
@@ -100,6 +142,10 @@ function GalleryReadBenchmark() {
           </Text>
         )}
         {run.status === 'done' && <MeasurementReport {...run} />}
+        {indexRun.status === 'denied' && <Text>Sem permissão para ler a galeria.</Text>}
+        {indexRun.status === 'running' && <Text>Indexando…</Text>}
+        {indexRun.status === 'error' && <Text>{indexRun.message}</Text>}
+        {indexRun.status === 'done' && <IndexReport {...indexRun} />}
       </ScrollView>
     </SafeAreaView>
   );
@@ -134,6 +180,27 @@ function MeasurementReport({
     ['Tempo total', `${(measurement.elapsedMs / 1_000).toFixed(2)} s`],
     ['Por mil fotos', perThousand === null ? '—' : `${(perThousand / 1_000).toFixed(2)} s`],
     ['Veredito', readVerdict(measurement) ?? '—'],
+  ];
+
+  return (
+    <View style={styles.report}>
+      {rows.map(([label, value]) => (
+        <View key={label} style={styles.row}>
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.value} selectable>
+            {value}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function IndexReport({ upserted, createdAfter, counts }: Extract<IndexState, { status: 'done' }>) {
+  const rows: [string, string][] = [
+    ['Leitura', createdAfter === null ? 'completa' : 'só fotos novas'],
+    ['Fotos lidas', String(upserted)],
+    ...ROLE_ROWS.map(([role, label]): [string, string] => [label, String(counts[role])]),
   ];
 
   return (
